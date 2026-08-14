@@ -415,23 +415,6 @@ function AssistPage() {
               <CardDescription>Check your technique or ask what happens next.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {thread.length > 0 && (
-                <div className="space-y-3">
-                  {thread.map((m, idx) => (
-                    <div
-                      key={idx}
-                      className={
-                        m.role === "user"
-                          ? "ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
-                          : "max-w-[85%] rounded-lg rounded-bl-sm bg-muted px-3 py-2 text-sm text-foreground"
-                      }
-                    >
-                      {m.text}
-                    </div>
-                  ))}
-                  <Separator />
-                </div>
-              )}
               <div className="flex flex-wrap gap-2">
                 {protocol.followUps.map((f) => (
                   <Button key={f.question} variant="outline" size="sm" onClick={() => ask(f.question, f.answer)}>
@@ -440,11 +423,6 @@ function AssistPage() {
                 ))}
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
-                {!callPlaced && (
-                  <Button variant="destructive" onClick={() => placeCall("placed on your command")}>
-                    <Phone className="size-4" /> Escalate — call {EMERGENCY_NUMBER}
-                  </Button>
-                )}
                 <Button variant="secondary" onClick={reset}>
                   <RotateCcw className="size-4" /> New assessment
                 </Button>

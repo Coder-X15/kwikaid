@@ -123,7 +123,7 @@ const PROTOCOLS: Record<string, Protocol> = {
 };
 
 export function assess(injuryType: string): Protocol {
-  return PROTOCOLS[injuryType] ?? PROTOCOLS.cut;
+  return PROTOCOLS[injuryType] ?? (PROTOCOLS["cut"] as Protocol);
 }
 
 export const SEVERITY_LABEL: Record<Severity, string> = {

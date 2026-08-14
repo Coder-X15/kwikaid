@@ -9,13 +9,13 @@ import { signIn } from "@/lib/firstaid";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AidPoint — Guided First-Aid Assistant" },
+      { title: "KwikAid — Guided First-Aid Assistant" },
       {
         name: "description",
         content:
-          "Sign in to AidPoint to photograph an injury, follow step-by-step first-aid guidance, and log incidents and emergency calls.",
+          "Sign in to KwikAid to photograph an injury, follow step-by-step first-aid guidance, and log incidents and emergency calls.",
       },
-      { property: "og:title", content: "AidPoint — Guided First-Aid Assistant" },
+      { property: "og:title", content: "KwikAid — Guided First-Aid Assistant" },
       {
         property: "og:description",
         content: "Photograph an injury, get step-by-step first-aid guidance, and keep an incident record.",
@@ -44,7 +44,7 @@ function LoginPage() {
           <span className="grid size-9 place-items-center rounded-md bg-primary-foreground/15">
             <Activity className="size-5" />
           </span>
-          AidPoint
+          KwikAid
         </div>
         <div className="max-w-sm space-y-4">
           <h1 className="text-3xl font-semibold leading-tight">Calm, guided first aid at the scene.</h1>

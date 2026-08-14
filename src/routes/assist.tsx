@@ -22,13 +22,13 @@ import {
 export const Route = createFileRoute("/assist")({
   head: () => ({
     meta: [
-      { title: "Guided Assessment — AidPoint" },
+      { title: "Guided Assessment — KwikAid" },
       {
         name: "description",
         content:
           "Upload a photo of an injury, receive a step-by-step first-aid protocol, escalate to emergency services and ask follow-up questions.",
       },
-      { property: "og:title", content: "Guided Assessment — AidPoint" },
+      { property: "og:title", content: "Guided Assessment — KwikAid" },
       {
         property: "og:description",
         content: "Photo-led triage with step-by-step first-aid instructions and simulated emergency escalation.",

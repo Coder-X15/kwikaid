@@ -23,7 +23,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
             <span className="grid size-8 place-items-center rounded-md bg-primary text-primary-foreground">
               <Activity className="size-4" />
             </span>
-            AidPoint
+            KwikAid
           </Link>
           <nav className="ml-auto flex items-center gap-1 text-sm">
             <Link

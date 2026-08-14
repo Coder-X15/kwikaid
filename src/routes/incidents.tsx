@@ -9,12 +9,12 @@ import { listIncidents, SEVERITY_LABEL, type Incident } from "@/lib/firstaid";
 export const Route = createFileRoute("/incidents")({
   head: () => ({
     meta: [
-      { title: "Incident Log — AidPoint" },
+      { title: "Incident Log — KwikAid" },
       {
         name: "description",
         content: "Review logged first-aid incidents, observed symptoms, completed steps and whether an emergency call was placed.",
       },
-      { property: "og:title", content: "Incident Log — AidPoint" },
+      { property: "og:title", content: "Incident Log — KwikAid" },
       { property: "og:description", content: "Every logged incident with symptoms, steps completed and call status." },
     ],
   }),

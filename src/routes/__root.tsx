@@ -77,12 +77,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AidPoint — Guided First-Aid Assistant" },
+      { title: "KwikAid — Guided First-Aid Assistant" },
       {
         name: "description",
         content: "Photo-led first-aid guidance, emergency escalation and incident logging.",
       },
-      { property: "og:title", content: "AidPoint — Guided First-Aid Assistant" },
+      { property: "og:title", content: "KwikAid — Guided First-Aid Assistant" },
       {
         property: "og:description",
         content: "Photo-led first-aid guidance, emergency escalation and incident logging.",

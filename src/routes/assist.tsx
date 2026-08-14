@@ -4,6 +4,7 @@ import { Camera, Check, ChevronRight, MessageCircle, Phone, RotateCcw, Stethosco
 import { AppFrame } from "@/components/AppFrame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,13 +23,13 @@ import {
 export const Route = createFileRoute("/assist")({
   head: () => ({
     meta: [
-      { title: "Guided Assessment — AidPoint" },
+      { title: "Guided Assessment — KwikAid" },
       {
         name: "description",
         content:
           "Upload a photo of an injury, receive a step-by-step first-aid protocol, escalate to emergency services and ask follow-up questions.",
       },
-      { property: "og:title", content: "Guided Assessment — AidPoint" },
+      { property: "og:title", content: "Guided Assessment — KwikAid" },
       {
         property: "og:description",
         content: "Photo-led triage with step-by-step first-aid instructions and simulated emergency escalation.",
@@ -52,6 +53,7 @@ function AssistPage() {
   const [callPlaced, setCallPlaced] = useState(false);
   const [thread, setThread] = useState<{ role: "user" | "agent"; text: string }[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
+  const [command, setCommand] = useState("");
 
   const stepsDone = useMemo(
     () => (protocol ? Math.min(stepIndex, protocol.steps.length) : 0),
@@ -94,6 +96,21 @@ function AssistPage() {
       setStepIndex(0);
       setPhase("steps");
       setAnalysing(false);
+      const autoCall = found.severity === "severe";
+      const baseNotes = ["Assessment opened from photo analysis (simulated)."];
+      if (autoCall) {
+        baseNotes.push(
+          `Agent judged the injury severe and placed an emergency call to ${EMERGENCY_NUMBER} automatically (simulated).`,
+        );
+        setCallPlaced(true);
+        setThread((t) => [
+          ...t,
+          {
+            role: "agent",
+            text: `This looks severe, so I have already dialled ${EMERGENCY_NUMBER} for you. Keep following the steps while help is on the way.`,
+          },
+        ]);
+      }
       const record: Incident = {
         id,
         createdAt: new Date().toISOString(),
@@ -104,9 +121,9 @@ function AssistPage() {
         photoName: photo?.name ?? null,
         stepsTotal: found.steps.length,
         stepsDone: 0,
-        callPlaced: false,
-        callNumber: null,
-        notes: ["Assessment opened from photo analysis (simulated)."],
+        callPlaced: autoCall,
+        callNumber: autoCall ? EMERGENCY_NUMBER : null,
+        notes: baseNotes,
       };
       setNotes(record.notes);
       saveIncident(record);
@@ -125,12 +142,44 @@ function AssistPage() {
     }
   }
 
-  function placeCall() {
+  function placeCall(reason = "placed on your command") {
+    if (callPlaced) return;
     setCallPlaced(true);
-    const note = `Emergency call to ${EMERGENCY_NUMBER} placed (simulated) at ${new Date().toLocaleTimeString()}.`;
+    const note = `Emergency call to ${EMERGENCY_NUMBER} ${reason} (simulated) at ${new Date().toLocaleTimeString()}.`;
     const nextNotes = [...notes, note];
     setNotes(nextNotes);
+    setThread((t) => [
+      ...t,
+      { role: "agent", text: `Dialling ${EMERGENCY_NUMBER} now — stay with the casualty and keep them still.` },
+    ]);
     persist({ callPlaced: true, callNumber: EMERGENCY_NUMBER, notes: nextNotes });
+  }
+
+  function runCommand(raw: string) {
+    const text = raw.trim();
+    if (!text) return;
+    setCommand("");
+    setThread((t) => [...t, { role: "user", text }]);
+    const wantsCall = /call|ambulance|emergency|medic|112|911|999|paramedic/i.test(text);
+    if (wantsCall) {
+      if (callPlaced) {
+        setThread((t) => [
+          ...t,
+          { role: "agent", text: `The call to ${EMERGENCY_NUMBER} is already active — stay on the line.` },
+        ]);
+        return;
+      }
+      placeCall("placed on your command");
+      return;
+    }
+    const answer =
+      protocol?.followUps.find((f) => text.toLowerCase().split(/\s+/).some((w) => w.length > 3 && f.question.toLowerCase().includes(w)))
+        ?.answer ??
+      "Noted. Keep working through the steps, and say \"call an ambulance\" any time you want me to dial emergency services.";
+    setThread((t) => [...t, { role: "agent", text: answer }]);
+    const nextNotes = [...notes, `Command: ${text}`];
+    setNotes(nextNotes);
+    persist({ notes: nextNotes });
   }
 
   function ask(question: string, answer: string) {
@@ -148,6 +197,7 @@ function AssistPage() {
     setCallPlaced(false);
     setThread([]);
     setNotes([]);
+    setCommand("");
     setIncidentId("");
   }
 
@@ -248,7 +298,7 @@ function AssistPage() {
                       variant={callPlaced ? "secondary" : "destructive"}
                       className="ml-auto"
                       disabled={callPlaced}
-                      onClick={placeCall}
+                      onClick={() => placeCall("placed on your command")}
                     >
                       <Phone className="size-4" />
                       {callPlaced ? "Call placed" : `Call ${EMERGENCY_NUMBER}`}
@@ -299,13 +349,15 @@ function AssistPage() {
           </>
         )}
 
-        {protocol && phase === "followup" && (
+        {protocol && phase !== "capture" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <MessageCircle className="size-5 text-primary" /> Follow-up on this situation
+                <MessageCircle className="size-5 text-primary" /> Talk to the agent
               </CardTitle>
-              <CardDescription>Check your technique or ask what happens next.</CardDescription>
+              <CardDescription>
+                Ask a question, or tell it to call for help — it will also dial on its own if the injury looks severe.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {thread.length > 0 && (
@@ -325,6 +377,44 @@ function AssistPage() {
                   <Separator />
                 </div>
               )}
+              <form
+                className="flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  runCommand(command);
+                }}
+              >
+                <Input
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  placeholder='e.g. "call an ambulance"'
+                />
+                <Button type="submit" variant="secondary">
+                  Send
+                </Button>
+              </form>
+              <Button
+                variant={callPlaced ? "secondary" : "destructive"}
+                className="w-full"
+                disabled={callPlaced}
+                onClick={() => placeCall("placed on your command")}
+              >
+                <Phone className="size-4" />
+                {callPlaced ? `Call to ${EMERGENCY_NUMBER} active` : `Tell the agent to call ${EMERGENCY_NUMBER}`}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {protocol && phase === "followup" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageCircle className="size-5 text-primary" /> Follow-up on this situation
+              </CardTitle>
+              <CardDescription>Check your technique or ask what happens next.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 {protocol.followUps.map((f) => (
                   <Button key={f.question} variant="outline" size="sm" onClick={() => ask(f.question, f.answer)}>
@@ -333,11 +423,6 @@ function AssistPage() {
                 ))}
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
-                {!callPlaced && (
-                  <Button variant="destructive" onClick={placeCall}>
-                    <Phone className="size-4" /> Escalate — call {EMERGENCY_NUMBER}
-                  </Button>
-                )}
                 <Button variant="secondary" onClick={reset}>
                   <RotateCcw className="size-4" /> New assessment
                 </Button>

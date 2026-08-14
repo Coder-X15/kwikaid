@@ -1,24 +1,89 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Activity, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { signIn } from "@/lib/firstaid";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "AidPoint — Guided First-Aid Assistant" },
+      {
+        name: "description",
+        content:
+          "Sign in to AidPoint to photograph an injury, follow step-by-step first-aid guidance, and log incidents and emergency calls.",
+      },
+      { property: "og:title", content: "AidPoint — Guided First-Aid Assistant" },
+      {
+        property: "og:description",
+        content: "Photograph an injury, get step-by-step first-aid guidance, and keep an incident record.",
+      },
+    ],
+  }),
+  component: LoginPage,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function LoginPage() {
+  const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (signIn(username, password)) navigate({ to: "/assist" });
+    else setError(true);
+  }
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <section className="hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex">
+        <div className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <span className="grid size-9 place-items-center rounded-md bg-primary-foreground/15">
+            <Activity className="size-5" />
+          </span>
+          AidPoint
+        </div>
+        <div className="max-w-sm space-y-4">
+          <h1 className="text-3xl font-semibold leading-tight">Calm, guided first aid at the scene.</h1>
+          <p className="text-sm text-primary-foreground/80">
+            Photograph the injury, work through one step at a time, escalate to emergency services when severity
+            demands it, and keep a clean record of every incident.
+          </p>
+        </div>
+        <p className="flex items-center gap-2 text-xs text-primary-foreground/70">
+          <ShieldCheck className="size-4" /> Demonstration build — guidance is simulated.
+        </p>
+      </section>
+
+      <section className="flex items-center justify-center px-6 py-16">
+        <form onSubmit={submit} className="w-full max-w-sm space-y-6">
+          <div className="space-y-1.5">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Clinician sign in</h2>
+            <p className="text-sm text-muted-foreground">Use the demo credentials test / test.</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">Incorrect credentials. Try test / test.</p>}
+          <Button type="submit" className="w-full">
+            Sign in
+          </Button>
+        </form>
+      </section>
     </div>
   );
 }

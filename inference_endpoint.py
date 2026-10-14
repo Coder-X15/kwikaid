@@ -31,6 +31,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+import cv2
 import numpy as np
 import onnxruntime as ort
 from dotenv import load_dotenv
@@ -49,16 +50,11 @@ TABLE = "inference_queue"
 BATCH_SIZE = 10  # rows fetched per poll
 MAX_ATTEMPTS = 3  # tries per row before a download/network error marks it failed
 
-# Same as torchvision's Resize(256) -> CenterCrop(224) -> ToTensor() ->
-# Normalize(ImageNet mean/std). Must match the transforms used in training.
-RESIZE = 256
-CROP = 224
-MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
-# Refuse huge or very elongated images before decoding them: resizing a long
-# thin strip so its short side is 256 px would need gigabytes of memory.
-MAX_PIXELS = 50_000_000
-MAX_ASPECT = 10
+# Input size. Preprocessing must match the training notebook (Kaggle
+# samrubenabraham/first-aid-id, cell 7): RGB, cv2.resize to 224x224 with
+# INTER_LINEAR (squashed, not cropped), scaled to 0..1, no mean/std normalization.
+SIZE = 224
+MAX_PIXELS = 50_000_000  # refuse anything bigger before decoding it
 
 # https://<ref>.supabase.co/storage/v1/object/[public/|sign/|authenticated/]<bucket>/<path>
 STORAGE_URL_BUCKET = re.compile(r"/storage/v1/(?:object|render/image)/(?:public/|sign/|authenticated/)?([^/]+)/")
@@ -69,22 +65,15 @@ class PermanentError(Exception):
 
 
 def preprocess(image_bytes: bytes) -> np.ndarray:
-    """Decode a photo into the model's 1x3x224x224 float32 input."""
+    """Decode a photo into the model's 1x3x224x224 float32 input, as in training."""
     with Image.open(io.BytesIO(image_bytes)) as img:
-        w, h = img.size
-        if w * h > MAX_PIXELS or max(w, h) > MAX_ASPECT * min(w, h):
-            raise ValueError(f"unsupported image size {w}x{h}")
-        # Phone cameras often save photos sideways plus an EXIF rotation tag.
+        if img.width * img.height > MAX_PIXELS:
+            raise ValueError(f"image too large: {img.width}x{img.height}")
+        # Phones save photos sideways plus an EXIF rotation tag; cv2.imread in
+        # training applied that tag too.
         img = ImageOps.exif_transpose(img).convert("RGB")
-    w, h = img.size
-    # Short side to RESIZE, long side scaled and truncated, as torchvision does.
-    size = (RESIZE, int(RESIZE * h / w)) if w <= h else (int(RESIZE * w / h), RESIZE)
-    img = img.resize(size, Image.Resampling.BILINEAR)
-    left = int(round((size[0] - CROP) / 2))
-    top = int(round((size[1] - CROP) / 2))
-    img = img.crop((left, top, left + CROP, top + CROP))
-    x = (np.asarray(img, dtype=np.float32) / 255 - MEAN) / STD
-    return x.transpose(2, 0, 1)[np.newaxis]  # HWC -> NCHW
+    x = cv2.resize(np.asarray(img), (SIZE, SIZE), interpolation=cv2.INTER_LINEAR)
+    return (x.astype(np.float32) / 255).transpose(2, 0, 1)[np.newaxis]  # like ToTensor(): HWC -> NCHW, 0..1
 
 
 def load_labels(path: Path) -> list[str]:
@@ -103,8 +92,6 @@ class Classifier:
             raise ValueError(
                 f"{labels_path.name} lists {len(self.labels)} labels but the model has {n_classes} classes"
             )
-        if all(re.fullmatch(r"class_\d+", label) for label in self.labels):
-            log.warning("%s still has placeholder names; fill in the real class names", labels_path.name)
 
     def classify(self, image_bytes: bytes) -> list[tuple[str, float]]:
         """(label, probability) for every class, most likely first."""

@@ -63,7 +63,8 @@ The tests run the real model against a fake Supabase, so they need no keys or ne
 - The host must keep it running. If the host sleeps when there's no web traffic, the queue stops being checked.
 - On a Mac, port 5000 is used by AirPlay. The worker still runs without `/health`, or set `PORT` to another port.
 
-## Still to confirm
+## Model
 
-- [ ] `labels.txt` holds placeholder names (`class_0` to `class_7`). It needs the 8 real class names in the model's output order.
-- [ ] Preprocessing is assumed to be `Resize(256)`, `CenterCrop(224)` and ImageNet mean/std normalization. It must match training.
+`resent18_trained.onnx` is a ResNet18 trained in the Kaggle notebook [samrubenabraham/first-aid-id](https://www.kaggle.com/code/samrubenabraham/first-aid-id). It has 8 outputs, named in `labels.txt` in output order: `Abrasions`, `Bruises`, `Burns`, `Cut`, `Ingrown_nails`, `Laceration`, `Stab_wound`, and `None` (no wound found). The worker writes one of these names to `inference`.
+
+`preprocess()` copies the notebook's image preparation exactly: RGB, `cv2.resize` to 224×224 with `INTER_LINEAR` (squashed, not cropped), and pixel values scaled to 0–1 with no mean/std normalization. If the model is retrained with different preprocessing, `preprocess()` and `labels.txt` must change with it.

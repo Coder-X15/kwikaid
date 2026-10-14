@@ -15,7 +15,9 @@ import uuid
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
+from unittest import mock
 
+import cv2
 import httpx
 import numpy as np
 from PIL import Image
@@ -121,17 +123,28 @@ class FakeSupabase:
 
 
 class PreprocessTests(unittest.TestCase):
-    def test_normalises_to_nchw_float32(self):
+    def test_matches_training_notebook(self):
+        """Cell 7 of the training notebook: cv2.imread -> RGB -> resize to 224x224 -> ToTensor()."""
+        pixels = np.random.default_rng(1).integers(0, 256, (300, 500, 3), dtype=np.uint8)
+        with tempfile.TemporaryDirectory() as tmp:
+            for fmt, tolerance in (("PNG", 0), ("JPEG", 2 / 255)):  # JPEG decoders may differ by a step
+                path = Path(tmp, f"photo.{fmt.lower()}")
+                Image.fromarray(pixels).save(path, fmt)
+                img = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
+                img = cv2.resize(img, dsize=(224, 224), interpolation=cv2.INTER_LINEAR)
+                expected = (img.astype(np.float32) / 255).transpose(2, 0, 1)[np.newaxis]
+                np.testing.assert_allclose(ie.preprocess(path.read_bytes()), expected, rtol=0, atol=tolerance)
+
+    def test_scales_to_0_1_without_normalisation(self):
         x = ie.preprocess(encode(Image.new("RGB", (640, 480), (255, 0, 0))))
         self.assertEqual((x.shape, x.dtype), ((1, 3, 224, 224), np.float32))
-        red = np.array([(1 - 0.485) / 0.229, -0.456 / 0.224, -0.406 / 0.225], dtype=np.float32)  # ImageNet mean/std
-        np.testing.assert_allclose(x[0], np.broadcast_to(red[:, None, None], (3, 224, 224)), rtol=1e-6)
+        self.assertTrue((x[0, 0] == 1).all() and (x[0, 1:] == 0).all())  # pure red, no ImageNet mean/std
 
-    def test_resizes_short_side_then_center_crops(self):
-        img = Image.new("L", (512, 256), 0)  # short side already 256, so no resampling
-        img.paste(255, (256, 0, 512, 256))  # right half white
-        x = ie.preprocess(encode(img))[0, 0]  # the crop spans columns 144..367
-        self.assertTrue((x[:, :112] < 0).all() and (x[:, 112:] > 0).all())
+    def test_squashes_to_224_without_cropping(self):
+        img = Image.new("RGB", (600, 200), (0, 0, 0))
+        img.paste((255, 0, 0), (0, 0, 60, 200))  # red strip on the far left: a centre crop would cut it off
+        x = ie.preprocess(encode(img))[0, 0]
+        self.assertTrue((x[:, :20] == 1).all() and (x[:, 25:] == 0).all())
 
     def test_applies_exif_rotation(self):
         img = Image.new("RGB", (400, 300), (0, 0, 0))
@@ -143,11 +156,11 @@ class PreprocessTests(unittest.TestCase):
             ie.preprocess(encode(img.transpose(Image.Transpose.ROTATE_270))),
         )
 
-    def test_rejects_non_images_and_extreme_shapes(self):
+    def test_rejects_non_images_and_huge_images(self):
         with self.assertRaises(Exception):
             ie.preprocess(b"definitely not an image")
-        with self.assertRaises(ValueError):
-            ie.preprocess(encode(Image.new("RGB", (4000, 100))))
+        with mock.patch.object(ie, "MAX_PIXELS", 100 * 100 - 1), self.assertRaises(ValueError):
+            ie.preprocess(encode(Image.new("RGB", (100, 100))))
 
 
 class ClassifierTests(unittest.TestCase):

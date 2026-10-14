@@ -1,11 +1,11 @@
 # Class names, one per line, in the model's output order (first line = output 0).
-# PLACEHOLDERS: replace with the real names from training, e.g. from the
-# class_to_idx of the torchvision ImageFolder the model was trained on.
-class_0
-class_1
-class_2
-class_3
-class_4
-class_5
-class_6
-class_7
+# From `wound_classes` in the training notebook (Kaggle samrubenabraham/first-aid-id).
+# "None" means no wound was found (trained on everyday ImageNet photos).
+Abrasions
+Bruises
+Burns
+Cut
+Ingrown_nails
+Laceration
+Stab_wound
+None

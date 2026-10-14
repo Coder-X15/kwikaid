@@ -1,0 +1,9 @@
+# Secrets: the real keys live in .env, which is never committed
+.env
+.env.*
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store

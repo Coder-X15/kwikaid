@@ -4,7 +4,8 @@ import { PhoneCall, PhoneOff, ClipboardList } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { listIncidents, SEVERITY_LABEL, type Incident } from "@/lib/firstaid";
+import { SEVERITY_LABEL, type Incident } from "@/lib/firstaid";
+import { listIncidents } from "@/lib/incidents";
 
 export const Route = createFileRoute("/incidents")({
   head: () => ({
@@ -23,7 +24,15 @@ export const Route = createFileRoute("/incidents")({
 
 function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  useEffect(() => setIncidents(listIncidents()), []);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listIncidents()
+      .then(setIncidents)
+      .catch((err: { message?: string }) => setError(err.message ?? "Could not load incidents."))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <AppFrame>
@@ -31,11 +40,15 @@ function IncidentsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Incident log</h1>
           <p className="text-sm text-muted-foreground">
-            {incidents.length} recorded {incidents.length === 1 ? "incident" : "incidents"} on this device.
+            {loading
+              ? "Loading your incidents…"
+              : `${incidents.length} recorded ${incidents.length === 1 ? "incident" : "incidents"} in your account.`}
           </p>
         </div>
 
-        {incidents.length === 0 && (
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {!loading && !error && incidents.length === 0 && (
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
               <ClipboardList className="size-8 text-muted-foreground" />

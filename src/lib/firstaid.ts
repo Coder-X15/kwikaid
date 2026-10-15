@@ -1,5 +1,4 @@
-// Dummy first-aid "agent" + local incident log. No backend: everything is
-// simulated client-side and persisted to localStorage.
+// Hard-coded first-aid protocols. The incident log lives in lib/incidents.ts.
 
 export type Severity = "minor" | "moderate" | "severe";
 
@@ -32,6 +31,7 @@ export const INJURY_TYPES = [
   { value: "fracture", label: "Suspected fracture" },
   { value: "bleed", label: "Heavy bleeding" },
   { value: "sprain", label: "Sprain / twist" },
+  { value: "choking", label: "Choking / can't breathe" },
 ] as const;
 
 const PROTOCOLS: Record<string, Protocol> = {
@@ -120,6 +120,23 @@ const PROTOCOLS: Record<string, Protocol> = {
       { question: "When can I walk normally?", answer: "Reintroduce weight gradually as pain settles, usually 3–7 days for a mild sprain." },
     ],
   },
+  choking: {
+    label: "Choking — airway obstruction",
+    severity: "severe",
+    symptoms: ["Unable to speak, cough or breathe", "Clutching the throat", "Lips or face turning blue", "High-pitched noise when breathing in"],
+    steps: [
+      { title: "Encourage coughing", detail: "Ask \"Are you choking?\" If they can cough or speak, tell them to keep coughing hard. Do not hit their back yet." },
+      { title: "Give 5 back blows", detail: "Stand to the side, support their chest, lean them forward and give up to 5 sharp blows between the shoulder blades with the heel of your hand." },
+      { title: "Give 5 abdominal thrusts", detail: "Stand behind them, place a fist just above the navel, grasp it with your other hand and pull sharply inwards and upwards up to 5 times." },
+      { title: "Keep alternating", detail: "Repeat 5 back blows and 5 abdominal thrusts until the object comes out or help arrives." },
+      { title: "If they collapse", detail: "Lower them to the floor and start CPR: 30 chest compressions, then 2 rescue breaths, until help arrives." },
+    ],
+    followUps: [
+      { question: "The object came out — are they fine now?", answer: "Anyone given abdominal thrusts should see a doctor, as thrusts can cause internal injury. Watch for a persistent cough, trouble swallowing or chest pain." },
+      { question: "What if it is a baby?", answer: "Lay the baby face-down along your forearm, head lower than the chest, give up to 5 back blows, then turn them over and give up to 5 chest thrusts with two fingers. Never use abdominal thrusts on a baby." },
+      { question: "Should I sweep their mouth with my finger?", answer: "Only remove an object you can clearly see and easily grab. Blind finger sweeps can push it deeper." },
+    ],
+  },
 };
 
 export function assess(injuryType: string): Protocol {
@@ -133,41 +150,3 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
 };
 
 export const EMERGENCY_NUMBER = "112";
-
-/* ---------------- storage ---------------- */
-
-const AUTH_KEY = "fa.auth";
-const LOG_KEY = "fa.incidents";
-
-export function signIn(username: string, password: string): boolean {
-  if (username.trim().toLowerCase() !== "test" || password !== "test") return false;
-  localStorage.setItem(AUTH_KEY, "test");
-  return true;
-}
-
-export function signOut() {
-  localStorage.removeItem(AUTH_KEY);
-}
-
-export function currentUser(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(AUTH_KEY);
-}
-
-export function listIncidents(): Incident[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(LOG_KEY) ?? "[]") as Incident[];
-  } catch {
-    return [];
-  }
-}
-
-export function saveIncident(incident: Incident) {
-  const all = listIncidents().filter((i) => i.id !== incident.id);
-  localStorage.setItem(LOG_KEY, JSON.stringify([incident, ...all]));
-}
-
-export function newIncidentId() {
-  return `INC-${Date.now().toString(36).toUpperCase()}`;
-}

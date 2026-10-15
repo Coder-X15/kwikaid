@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn } from "@/lib/firstaid";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,14 +27,43 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [mode, setMode] = useState<"signin" | "register">("signin");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  // Already signed in? Skip straight to the app.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/assist", replace: true });
+    });
+  }, [navigate]);
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (signIn(username, password)) navigate({ to: "/assist" });
-    else setError(true);
+    setBusy(true);
+    setError(null);
+    setInfo(null);
+    const { data, error } =
+      mode === "signin"
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password });
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    // signUp returns no session while "Confirm email" is switched on in Supabase.
+    if (data.session) navigate({ to: "/assist" });
+    else setInfo("Account created. Check your inbox to confirm your email, then sign in.");
+  }
+
+  function switchMode() {
+    setMode(mode === "signin" ? "register" : "signin");
+    setError(null);
+    setInfo(null);
   }
 
   return (
@@ -61,27 +90,47 @@ function LoginPage() {
       <section className="flex items-center justify-center px-6 py-16">
         <form onSubmit={submit} className="w-full max-w-sm space-y-6">
           <div className="space-y-1.5">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Clinician sign in</h2>
-            <p className="text-sm text-muted-foreground">Use the demo credentials test / test.</p>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              {mode === "signin" ? "Sign in" : "Create an account"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {mode === "signin" ? "Use your email and password." : "Passwords need at least 6 characters."}
+            </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
+              required
+              minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
             />
           </div>
-          {error && <p className="text-sm text-destructive">Incorrect credentials. Try test / test.</p>}
-          <Button type="submit" className="w-full">
-            Sign in
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {info && <p className="text-sm text-primary">{info}</p>}
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Register"}
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            {mode === "signin" ? "New to KwikAid?" : "Already have an account?"}{" "}
+            <button type="button" onClick={switchMode} className="font-medium text-primary hover:underline">
+              {mode === "signin" ? "Create an account" : "Sign in"}
+            </button>
+          </p>
         </form>
       </section>
     </div>

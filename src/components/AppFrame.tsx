@@ -1,19 +1,33 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Activity, LogOut } from "lucide-react";
-import { currentUser, signOut } from "@/lib/firstaid";
+import { Activity, Loader2, LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!currentUser()) navigate({ to: "/", replace: true });
-    else setReady(true);
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) navigate({ to: "/", replace: true });
+      else setEmail(data.session.user.email ?? "");
+    });
+    // Also catches sign-out from another tab and expired sessions.
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) navigate({ to: "/", replace: true });
+    });
+    return () => data.subscription.unsubscribe();
   }, [navigate]);
 
-  if (!ready) return <div className="min-h-screen bg-background" />;
+  if (email === null) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background" role="status" aria-live="polite">
+        <Loader2 className="size-6 animate-spin text-primary" />
+        <span className="sr-only">Checking your session…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,11 +54,12 @@ export function AppFrame({ children }: { children: ReactNode }) {
             >
               Incidents
             </Link>
+            <span className="hidden px-2 text-xs text-muted-foreground sm:inline">{email}</span>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                signOut();
+              onClick={async () => {
+                await supabase.auth.signOut();
                 navigate({ to: "/", replace: true });
               }}
             >

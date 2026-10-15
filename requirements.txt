@@ -1,2 +1,5 @@
-onnxruntime
-pytorch
+onnxruntime>=1.20
+numpy>=2.0
+pillow>=11.0
+supabase>=2.10
+python-dotenv>=1.0

@@ -28,6 +28,8 @@ export type Incident = {
 export const INJURY_TYPES = [
   { value: "cut", label: "Cut / laceration" },
   { value: "burn", label: "Burn / scald" },
+  { value: "bruise", label: "Bruise / contusion" },
+  { value: "ingrown_nail", label: "Ingrown toenail" },
   { value: "fracture", label: "Suspected fracture" },
   { value: "bleed", label: "Heavy bleeding" },
   { value: "sprain", label: "Sprain / twist" },
@@ -101,6 +103,96 @@ const PROTOCOLS: Record<string, Protocol> = {
       { question: "When do I loosen the tourniquet?", answer: "Never loosen it yourself. Hand over the application time to the ambulance crew." },
       { question: "Dressing is soaked — replace it?", answer: "Do not remove it. Add another pad on top and keep pressing." },
       { question: "What do I tell the dispatcher?", answer: "Exact location, mechanism of injury, that bleeding is uncontrolled, and whether a tourniquet is on." },
+    ],
+  },
+  bruise: {
+    label: "Bruise / contusion",
+    severity: "minor",
+    symptoms: ["Tenderness", "Discoloured skin", "Mild local swelling"],
+    steps: [
+      {
+        title: "Rest and protect the area",
+        detail: "Stop activity and avoid pressure or further knocks to the bruised area.",
+      },
+      {
+        title: "Use a wrapped cold pack",
+        detail:
+          "Apply a cold pack wrapped in cloth for up to 20 minutes at a time. Never put ice directly on skin.",
+      },
+      {
+        title: "Raise it if practical",
+        detail: "Elevate the area, if comfortable, to help limit swelling.",
+      },
+      {
+        title: "Monitor changes",
+        detail:
+          "Seek urgent medical advice for severe pain or swelling, numbness, a rapidly enlarging or unexplained bruise, or a head or eye injury.",
+      },
+      {
+        title: "Consider health risks",
+        detail:
+          "Get medical advice promptly if the person takes blood thinners or bruises easily without a clear cause.",
+      },
+    ],
+    followUps: [
+      {
+        question: "Should I put ice directly on it?",
+        answer: "No. Wrap a cold pack in cloth and apply it for up to 20 minutes at a time.",
+      },
+      {
+        question: "When should I seek care?",
+        answer:
+          "Seek urgent advice for severe pain or swelling, numbness, a head or eye injury, a rapidly growing bruise, or if the person takes blood thinners.",
+      },
+      {
+        question: "Can I massage the bruise?",
+        answer:
+          "Avoid massaging it while it is painful or swollen; protect the area and monitor it.",
+      },
+    ],
+  },
+  ingrown_nail: {
+    label: "Ingrown toenail",
+    severity: "minor",
+    symptoms: ["Pain along the nail edge", "Redness or swelling", "Possible drainage if infected"],
+    steps: [
+      {
+        title: "Soak gently",
+        detail: "Soak the toe in warm water for 10–20 minutes, then dry it carefully.",
+      },
+      {
+        title: "Reduce pressure",
+        detail: "Wear roomy footwear or open-toed shoes while the area is sore.",
+      },
+      {
+        title: "Do not dig or cut the edge",
+        detail: "Do not try to dig out the nail, cut down its side, or puncture the skin.",
+      },
+      {
+        title: "Keep it clean",
+        detail:
+          "Keep the toe clean and dry between soaks; cover loosely with a clean dressing if rubbing causes discomfort.",
+      },
+      {
+        title: "Watch for infection or risk factors",
+        detail:
+          "Get medical advice for pus, spreading redness, fever, worsening pain, or if the person has diabetes or poor circulation.",
+      },
+    ],
+    followUps: [
+      {
+        question: "Should I cut out the corner?",
+        answer: "No. Digging or cutting down the side can worsen the injury or cause infection.",
+      },
+      {
+        question: "When does it need medical attention?",
+        answer:
+          "Get advice for pus, spreading redness, fever, worsening pain, or promptly if the person has diabetes or poor circulation.",
+      },
+      {
+        question: "What footwear should I use?",
+        answer: "Choose roomy shoes or open-toed footwear until pressure and soreness improve.",
+      },
     ],
   },
   sprain: {

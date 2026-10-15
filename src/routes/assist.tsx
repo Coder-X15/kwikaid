@@ -98,6 +98,7 @@ const isSevere = (value: string) => assess(value).severity === "severe";
 const SCENARIOS = [...INJURY_TYPES].sort((a, b) => Number(isSevere(b.value)) - Number(isSevere(a.value)));
 
 const injuryLabel = (value: string) => INJURY_TYPES.find((t) => t.value === value)?.label ?? value;
+const isNoneLabel = (label: string | null) => label?.trim().toLowerCase() === "none";
 
 const HOSPITAL_SEARCH = "https://www.google.com/maps/search/hospital+near+me";
 
@@ -491,29 +492,37 @@ function AssistPage() {
                         </Button>
                         <p className="text-xs text-muted-foreground">Not right? Choose the correct situation:</p>
                       </>
+                    ) : isNoneLabel(result.label) ? (
+                      <p className="flex items-start gap-2 text-sm text-foreground">
+                        <TriangleAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                        No injury category was detected. If one of the situations above applies, select its button
+                        above. If none applies, ignore this result.
+                      </p>
                     ) : (
                       <p className="flex items-start gap-2 text-sm text-foreground">
                         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
                         {result.problem} Pick the closest match to continue.
                       </p>
                     )}
-                    <div className="flex flex-wrap gap-2">
-                      <Select value={injuryType} onValueChange={setInjuryType}>
-                        <SelectTrigger className="min-w-48 flex-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INJURY_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button variant={result.suggested ? "outline" : "default"} onClick={pickManually}>
-                        Start protocol
-                      </Button>
-                    </div>
+                    {!isNoneLabel(result.label) && (
+                      <div className="flex flex-wrap gap-2">
+                        <Select value={injuryType} onValueChange={setInjuryType}>
+                          <SelectTrigger className="min-w-48 flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INJURY_TYPES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                {t.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button variant={result.suggested ? "outline" : "default"} onClick={pickManually}>
+                          Start protocol
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

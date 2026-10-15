@@ -34,7 +34,10 @@ export async function submitPhoto(file: File): Promise<string> {
 
   const image = await downscale(file);
   const ext = image.type.split("/")[1] ?? "jpg";
-  const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+  const fileId =
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  const path = `${user.id}/${fileId}.${ext}`;
 
   const upload = await supabase.storage
     .from(IMAGE_BUCKET)
@@ -90,6 +93,10 @@ const LABEL_ALIASES: Record<string, string> = {
   laseration: "cut",
   abrasion: "cut",
   abrasions: "cut",
+  bruise: "bruise",
+  bruises: "bruise",
+  ingrown_nail: "ingrown_nail",
+  ingrown_nails: "ingrown_nail",
   burn: "burn",
   burns: "burn",
   scald: "burn",

@@ -25,6 +25,8 @@ Prefer working locally? You need Node.js and npm — [install with nvm](https://
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
+nvm install
+nvm use
 npm i
 npm run dev
 ```

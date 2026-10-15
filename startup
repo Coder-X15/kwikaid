@@ -1,0 +1,1 @@
+docker run -d --name tuttle --restart unless-stopped --env-file .env -p 8000:8000 inf_end:latest

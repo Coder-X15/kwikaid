@@ -483,7 +483,7 @@ function AssistPage() {
                         <p className="flex items-start gap-2 text-sm text-foreground">
                           <ScanSearch className="mt-0.5 size-4 shrink-0 text-primary" />
                           <span>
-                            The CV model detected <strong>{result.label}</strong>. Matching protocol:{" "}
+                            The CV model detected <strong>{result.label?.replace(/_/g, " ")}</strong>. Matching protocol:{" "}
                             <strong>{injuryLabel(result.suggested)}</strong>.
                           </span>
                         </p>
